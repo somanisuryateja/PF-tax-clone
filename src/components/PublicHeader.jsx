@@ -7,14 +7,6 @@ import React from "react";
  */
 const PublicHeader = () => (
   <>
-    {/* 🔴 Top Bar */}
-    <div className="bg-[#b30000] text-white text-xs sm:text-sm py-2 px-4 flex flex-wrap justify-between items-center">
-      <span>Help Desk / Toll-Free Number (14470)</span>
-      <span className="mt-1 sm:mt-0">
-        Screen Reader Access | Skip to main content | A A A
-      </span>
-    </div>
-
     {/* 🟠 Header */}
     <header className="flex flex-wrap justify-between items-center px-6 py-4 border-b border-gray-300 bg-white">
       <div className="flex items-center gap-4">

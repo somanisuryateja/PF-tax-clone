@@ -2,29 +2,37 @@ import React from "react";
 
 const HomeFooter = () => (
   <>
-    {/* 🔵 Footer Links */}
-    <section className="flex flex-wrap justify-center gap-4 px-6 py-5 bg-[#f1f3fe] border-t border-gray-300 text-sm">
-      <span className="text-[#2333cb] font-medium cursor-not-allowed">
-        Employers Portal
-      </span>
-      <span className="text-[#2333cb] font-medium cursor-not-allowed">
-        Pradhan Mantri Rojgar Protsahan Yojana
-      </span>
-      <span className="text-[#2333cb] font-medium cursor-not-allowed">
-        mGovernance
-      </span>
-      <span className="text-[#2333cb] font-medium cursor-not-allowed">
-        Ministry of Labour & Employment
-      </span>
+    {/* 🔵 Top Grey Link Bar */}
+    <section className="w-full bg-[#e9e9e9] border-t border-gray-300">
+      <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-black py-3">
+        <a className="hover:underline cursor-pointer">Home</a> |
+        <a className="hover:underline cursor-pointer">Contact Us</a> |
+        <a className="hover:underline cursor-pointer">Help</a> |
+        <a className="hover:underline cursor-pointer">Sitemap</a> |
+        <a className="hover:underline cursor-pointer">Disclaimer</a> |
+        <a className="hover:underline cursor-pointer">Copyright Policy</a> |
+        <a className="hover:underline cursor-pointer">Hyperlinking Policy</a> |
+        <a className="hover:underline cursor-pointer">Terms Of Use</a> |
+        <a className="hover:underline cursor-pointer">Feedback</a> |
+        <a className="hover:underline cursor-pointer">Privacy Policy</a>
+      </div>
     </section>
 
-    {/* ⚫ Footer */}
-    <footer className="bg-[#2333cb] text-white text-center text-xs sm:text-sm py-3">
-      © Owned and Developed by Employees’ Provident Fund Organisation, India | Last updated:
-      23-Oct-2025
+    {/* 🔴 Bottom Red Footer */}
+    <footer className="w-full bg-[#b60000] text-white text-xs sm:text-sm py-3">
+      <div className="flex flex-col sm:flex-row justify-between items-center px-5 gap-2 text-center">
+        <span>
+          © Owned and Developed by Employees’ Provident Fund Organisation, India
+        </span>
+
+        <span>Last updated: 23-Oct-2025</span>
+
+        <span>
+          Visitor Count (w.e.f 06-08-2016): <b>3281079552</b>
+        </span>
+      </div>
     </footer>
   </>
 );
 
 export default HomeFooter;
-

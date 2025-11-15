@@ -1,165 +1,136 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { FaGlobe } from "react-icons/fa";
 import PublicHeader from "../components/PublicHeader.jsx";
 import HomeFooter from "../components/HomeFooter.jsx";
 
-const quickActions = [
+const bannerOptions = [
   "Establishment Registration",
   "KYC Updation (Member)",
   "UMANG",
   "ECR/Returns/Payment",
-  "Online Claims Member Account Transfer",
+  "Online Claims",
+  "Member Account Transfer",
   "e-Passbook",
   "Performance of Establishments",
   "Revamped ECR/FAQs",
 ];
 
 const HomePage = () => {
-  console.log('🟢 [HOME PAGE] Component rendered');
-  console.log('🟢 [HOME PAGE] Current URL:', window.location.href);
-  console.log('🟢 [HOME PAGE] localStorage token:', localStorage.getItem('pf-token') ? 'EXISTS' : 'EMPTY');
-  console.log('🟢 [HOME PAGE] localStorage employer:', localStorage.getItem('pf-employer') ? 'EXISTS' : 'EMPTY');
-  
   return (
     <div className="min-h-screen flex flex-col bg-white font-sans">
       <PublicHeader />
 
       {/* 🔵 Navigation */}
-      <nav className="bg-[#2333cb] text-white text-sm font-medium flex flex-wrap justify-center gap-3 py-2 px-4">
-        {[
-          "Services",
-          "Exempted Estt",
-          "EPFO Corner",
-          "Miscellaneous",
-          "Directory",
-          "Payroll Data",
-          "ABRY",
-          "Dashboards",
-          "Covid-19",
-          "Downloads",
-        ].map((item) => (
-          <button
-            key={item}
-            type="button"
-            className="px-3 py-1 rounded-md cursor-not-allowed bg-white/10 text-white/80"
-          >
-            {item}
-          </button>
-        ))}
+      <nav className="bg-[#0b2c6b] shadow-sm">
+        <div className="px-6 sm:px-10 flex flex-wrap justify-center text-[0.875rem] font-medium text-white">
+          {[
+            "Services",
+            "Exempted Estt",
+            "EPFO Corner",
+            "Miscellaneous",
+            "Directory",
+            "Payroll Data",
+            "ABRY",
+            "Dashboards",
+            "Covid-19",
+            "Downloads",
+          ].map((item) => (
+            <div key={item} className="relative border-r border-[#0d377a] last:border-none">
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-1 px-3 sm:px-4 py-3 text-white transition-colors duration-200 bg-transparent hover:bg-[#1c4587]/70 disabled:text-white/80 disabled:cursor-not-allowed"
+              >
+                {item}
+                <span className="text-xs text-white/70 translate-y-px">▾</span>
+              </button>
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* 🟣 Banner */}
-      <section className="flex flex-col md:flex-row justify-center items-center bg-[#722f91] text-white px-6 py-10 gap-8 text-center md:text-left">
-        <div className="max-w-lg">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-3">
-            Pradhan Mantri Viksit Bharat Rozgar Yojana
-          </h2>
-          <p className="text-base leading-relaxed">
-            "रोजगार या स्वरोजगार के अनुप्रेरक बनाना, ये भारत सरकार का संकल्प और प्रतिबद्धता है।
-            एम्प्लॉयीज़ प्रोविडेंट फंड के ज़रिए देश में करोड़ों रोजगार सृजन होंगे।" — श्री नरेंद्र मोदी
-          </p>
-        </div>
-        <img
-          src="https://wallpapers.com/images/hd/indian-leaderin-traditional-attire-41692svz6o3u223h.png"
-          alt="PM Narendra Modi"
-          className="rounded-lg w-48 sm:w-60 md:w-72 shadow-lg"
-        />
-      </section>
+      <section className="px-4 sm:px-6 sm:pt-3">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
+          <div className="w-full lg:basis-[60%]">
+            <img
+              src="https://www.epfindia.gov.in/images/PMVBRY%20Banner.jpg"
+              alt="PMVBRY Banner"
+              className="w-full rounded-xl shadow-md border border-gray-200"
+              loading="lazy"
+            />
+          </div>
 
-      {/* 🟢 Quick Action Buttons */}
-      <section className="bg-[#f8f9ff] py-5 px-4 flex flex-wrap justify-center gap-3">
-        {quickActions.map((item) =>
-          item === "ECR/Returns/Payment" ? (
-            <Link
-              key={item}
-              to="/login"
-              className="bg-[#b30000] text-white text-sm px-4 py-2 rounded-md shadow hover:bg-[#cc3333] transition"
-            >
-              {item}
-            </Link>
-          ) : (
-            <button
-              key={item}
-              type="button"
-              disabled
-              className="bg-gray-300 text-gray-600 text-sm px-4 py-2 rounded-md cursor-not-allowed opacity-70"
-            >
-              {item}
-            </button>
-          )
-        )}
+          <div className="w-full lg:basis-[40%]">
+            <div className="grid grid-cols-2 gap-3">
+              {bannerOptions.map((option) => {
+                const isEnabled = option === "ECR/Returns/Payment";
+                return (
+                  <div
+                    key={option}
+                    className={`flex items-center justify-center rounded-md border border-[#0d377a] bg-[#0b2c6b] px-3 py-2 text-center text-[0.9rem] font-medium text-white shadow-sm ${
+                      isEnabled ? "transition-colors duration-200 hover:bg-white hover:text-[#0b2c6b] cursor-pointer" : ""
+                    }`}
+                  >
+                    {option}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 🟡 Main Section */}
-      <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6 py-10 flex-1">
-        {/* Left: Online Services */}
-        <div className="bg-[#f3f5ff] rounded-xl p-5 shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold text-[#2333cb] mb-4">
-            Online Services
-          </h3>
-          <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-            <li>
-              Establishment e-Report Card{" "}
-              <span className="text-[#2333cb]">↗</span>
-            </li>
-            <li>
-              Principal Employers-CATU Portal{" "}
-              <span className="text-[#2333cb]">↗</span>
-            </li>
-            <li>
-              Pensioners’ Portal <span className="text-[#2333cb]">↗</span>
-            </li>
-            <li>EDLI & Pension Calculator</li>
-            <li>
-              Jeevan Pramaan Through Mobile App{" "}
-              <span className="text-[#2333cb]">(Process Flow ↗)</span>
-            </li>
-            <li>TBRN Query Search</li>
-            <li>International Workers Portal</li>
+      <main className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 py-10 flex-1">
+        {/* Online Services */}
+        <div className="rounded-md border border-gray-400 shadow-sm">
+          <div className="bg-gray-300 px-5 py-3 rounded-t-md flex items-center gap-3">
+            <FaGlobe className="text-[#6A2FC3] text-2xl" aria-hidden="true" />
+            <h3 className="text-2xl font-bold text-[#6A2FC3]">
+              Online Services
+            </h3>
+          </div>
+          <ul className="list-none px-5 py-4 text-sm text-gray-800 space-y-2">
+            {[
+              "Establishment e-Report Card",
+              "Principal Employers-CATU Portal",
+              "Pensioners’ Portal",
+              "EDLI & Pension Calculator",
+              "Jeevan Pramaan Through Mobile App (Process Flow)",
+              "TBRN Query Search",
+              "International Workers Portal",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="text-[#6A2FC3]">→</span>
+                <span className="flex-1">{item}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Center: About Us */}
-        <div className="bg-white p-5 border border-gray-200 rounded-xl shadow-sm">
-          <h3 className="text-lg font-semibold text-[#2333cb] mb-4">
-            About Us
-          </h3>
-          <p className="text-sm text-gray-700 leading-relaxed mb-3">
-            EPFO ranks among the globe’s premier Social Security Organizations,
-            distinguished by its vast clientele and the magnitude of financial
-            transactions it manages. At present it maintains 29.88 crore
-            accounts and oversees financial operations at a massive scale.
-          </p>
-          <p className="text-sm text-gray-700 leading-relaxed">
-            The inception of the Employees’ Provident Fund dates back to the
-            enactment of the Employees’ Provident Funds Ordinance on November
-            15, 1951, which was later replaced by the Employees’ Provident Funds
-            and Miscellaneous Provisions Act, 1952. The organization operates
-            under the Ministry of Labour & Employment, Government of India.
-          </p>
-        </div>
-
-        {/* Right: What's New */}
-        <div className="bg-[#f3f5ff] rounded-xl p-5 shadow-md border border-gray-200">
-          <h3 className="text-lg font-semibold text-[#2333cb] mb-4">
-            What's New
-          </h3>
-          <ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
+        {/* About Us */}
+        <div className="rounded-md border border-gray-400 shadow-sm">
+          <div className="bg-gray-300 px-5 py-3 rounded-t-md">
+            <h3 className="text-2xl font-bold text-[#6A2FC3]">
+              About Us
+            </h3>
+          </div>
+          <ul className="list-disc px-6 py-4 text-sm text-gray-800 space-y-2">
             <li>
-              Notice inviting applications for empanelment of advocates (2025)
-              <span className="text-[#2333cb]">...Read</span>
+              EPFO stands among the world’s leading social security organizations,
+              serving millions of members and establishments.
             </li>
             <li>
-              Empanelment of Chartered Accountants (Mumbai, Thane)
-              <span className="text-[#2333cb]">...Read</span>
+              Currently manages over 29 crore accounts and handles large-scale
+              financial operations nationwide.
             </li>
             <li>
-              Extension of date for inviting applications
-              <span className="text-[#2333cb]">...Read</span>
+              Origin traces back to the Employees’ Provident Funds Ordinance (1951),
+              later replaced by the EPF & MP Act, 1952.
             </li>
             <li>
-              CBT admission schemes and portal upgrades
-              <span className="text-[#2333cb]">...Read</span>
+              Operates under the Ministry of Labour & Employment, Government of India.
             </li>
           </ul>
         </div>

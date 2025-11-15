@@ -29,21 +29,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback(() => {
-    console.log('🔴 [AUTH CONTEXT] logout() called');
-    console.log('🔴 [AUTH CONTEXT] Clearing token state...');
     setAuthToken('');
-    console.log('🔴 [AUTH CONTEXT] Clearing employer state...');
     setEmployer(null);
-    console.log('🔴 [AUTH CONTEXT] Clearing token state variable...');
     setTokenState('');
-    console.log('🔴 [AUTH CONTEXT] Clearing employer state variable...');
     setEmployerState(null);
-    console.log('🔴 [AUTH CONTEXT] logout() completed');
   }, []);
 
   useEffect(() => {
     const handleForcedLogout = () => {
-      console.log('🔴 [AUTH CONTEXT] Forced logout event received');
       logout();
     };
 

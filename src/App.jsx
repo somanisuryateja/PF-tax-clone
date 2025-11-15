@@ -15,13 +15,12 @@ import ChallanPaymentPage from './pages/ChallanPaymentPage.jsx';
 import PaymentGatewayPage from './pages/PaymentGatewayPage.jsx';
 
 const App = () => {
-  console.log('🔵 [APP] App component rendered');
-  console.log('🔵 [APP] Current window location:', window.location.href);
-  console.log('🔵 [APP] Current pathname:', window.location.pathname);
-  
   return (
     <BrowserRouter>
       <AuthProvider>
+        <div className="w-full bg-[#c62839] text-white text-xs sm:text-sm py-2 px-4 text-center">
+          This is a simulation. Please use this website for Educational purposes only. This is not affiliated with, endorsed by, or authorized by gst.gov.in or the Government of India.
+        </div>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/gateway/ecr" element={<EcrGatewayPage />} />

@@ -6,38 +6,10 @@ const DashboardHeader = () => {
   const loginDate = useMemo(() => new Date().toLocaleString(), []);
 
   const handleLogout = () => {
-    console.log('🔴 [LOGOUT] Starting logout process...');
-    
-    // Check current state
-    console.log('🔴 [LOGOUT] Before logout - Token:', localStorage.getItem('pf-token') ? 'EXISTS' : 'EMPTY');
-    console.log('🔴 [LOGOUT] Before logout - Employer:', localStorage.getItem('pf-employer') ? 'EXISTS' : 'EMPTY');
-    console.log('🔴 [LOGOUT] Before logout - Current URL:', window.location.href);
-    console.log('🔴 [LOGOUT] Before logout - Authenticated:', employer ? 'YES' : 'NO');
-    
-    // Clear localStorage synchronously before navigation
-    console.log('🔴 [LOGOUT] Clearing localStorage...');
     localStorage.removeItem('pf-token');
     localStorage.removeItem('pf-employer');
-    
-    // Verify localStorage is cleared
-    console.log('🔴 [LOGOUT] After clearing localStorage - Token:', localStorage.getItem('pf-token') ? 'STILL EXISTS' : 'CLEARED');
-    console.log('🔴 [LOGOUT] After clearing localStorage - Employer:', localStorage.getItem('pf-employer') ? 'STILL EXISTS' : 'CLEARED');
-    
-    // Clear auth state
-    console.log('🔴 [LOGOUT] Calling logout() function...');
     logout();
-    
-    // Verify auth state is cleared
-    console.log('🔴 [LOGOUT] After logout() - Auth state should be cleared');
-    
-    // Force a hard reload to the home page
-    console.log('🔴 [LOGOUT] Navigating to home page using window.location.replace("/")...');
-    console.log('🔴 [LOGOUT] Target URL: /');
-    
-    // Use replace to ensure we don't create a history entry
     window.location.replace("/");
-    
-    console.log('🔴 [LOGOUT] Navigation command executed (this may not print if page reloads immediately)');
   };
 
   return (

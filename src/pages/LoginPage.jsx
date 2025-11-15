@@ -32,17 +32,9 @@ const LoginPage = () => {
   const modalFrom = useMemo(() => location.state?.modalFrom ?? "/", [location.state]);
 
   useEffect(() => {
-    console.log('🟠 [LOGIN PAGE] useEffect triggered');
-    console.log('🟠 [LOGIN PAGE] Authenticated:', authenticated);
-    console.log('🟠 [LOGIN PAGE] Current location:', location.pathname);
-    console.log('🟠 [LOGIN PAGE] Location state:', location.state);
-    
     if (authenticated) {
       const from = location.state?.from?.pathname ?? "/dashboard";
-      console.log('🟠 [LOGIN PAGE] User is authenticated - redirecting to:', from);
       navigate(from, { replace: true });
-    } else {
-      console.log('🟠 [LOGIN PAGE] User is not authenticated - showing login form');
     }
   }, [authenticated, navigate, location.state]);
 
