@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader.jsx";
 import BlueNavbar from "../components/BlueNavbar.jsx";
 import { apiClient } from "../api/client.js";
@@ -19,6 +19,33 @@ const formatMonthLabel = (value) => {
 
 const ChallanListPage = () => {
   const { employer } = useAuth();
+  const location = useLocation();
+  const [bannerMessage, setBannerMessage] = useState(location.state?.actionMessage ?? "");
+  const [fullPaymentContext, setFullPaymentContext] = useState(() => {
+    if (location.state?.fullPaymentContext) return location.state.fullPaymentContext;
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = sessionStorage.getItem("pf-full-payment-context");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (location.state?.actionMessage) {
+      setBannerMessage(location.state.actionMessage);
+    }
+  }, [location.state?.actionMessage]);
+
+  useEffect(() => {
+    if (location.state?.fullPaymentContext) {
+      setFullPaymentContext(location.state.fullPaymentContext);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pf-full-payment-context", JSON.stringify(location.state.fullPaymentContext));
+      }
+    }
+  }, [location.state?.fullPaymentContext]);
   const [challans, setChallans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,15 +75,30 @@ const ChallanListPage = () => {
         <BlueNavbar />
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
-        <header className="rounded-md border border-gray-300 bg-white px-6 py-4 shadow-sm">
-          <h1 className="text-lg font-semibold text-[#b30000]">
-            View / Pay Challans
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Home › Return Home Page › Return Monthly Dashboard › View / Pay Challans
-          </p>
-        </header>
+      <main className="mx-auto py-8 space-y-6">
+        <div className="w-full px-4 py-2 bg-gray-100 mb-2">
+          <nav className="flex flex-wrap items-center text-[13px] font-semibold">
+            <Link to="/dashboard" className="text-blue-600 hover:underline">
+              Home
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns" className="text-blue-600 hover:underline">
+              Return Home Page
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns/monthly" className="text-black hover:underline">
+              Return Monthly Dashboard
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <span className="text-black">View / Pay Challans</span>
+          </nav>
+        </div>
+
+        {bannerMessage && (
+          <div className="mx-4 rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            ✅ {bannerMessage}
+          </div>
+        )}
 
         {error && (
           <div className="rounded border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -64,76 +106,83 @@ const ChallanListPage = () => {
           </div>
         )}
 
-        <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-          <header className="flex items-center justify-between border-b border-gray-200 bg-[#f5f7fa] px-6 py-4">
-            <h2 className="text-base font-semibold text-gray-800">In-Process Challan List</h2>
-            <span className="text-xs font-semibold uppercase text-gray-500">
-              Displaying {Math.max(inProcess.length, 1)} record(s)
-            </span>
-          </header>
+        <div className="mx-4 mb-2 w-full border-t-2 border-b-2 border-[#99c2ff] px-4 py-2">
+          <h2 className="text-[16px] font-semibold text-[#b8860b]">* In-Process Challan List</h2>
+        </div>
+        <section className="mx-4 rounded-md border border-gray-300 bg-white shadow-sm">
           {loading ? (
             <p className="px-6 py-6 text-sm text-gray-500">Loading challans…</p>
           ) : (
             <div className="overflow-x-auto px-6 py-6">
-              <table className="min-w-full divide-y divide-gray-200 text-sm text-gray-700">
-                <thead className="bg-gray-50">
-                  <tr className="text-left">
-                    <th className="px-3 py-2 font-semibold">Sr. No.</th>
-                    <th className="px-3 py-2 font-semibold">TRRN</th>
-                    <th className="px-3 py-2 font-semibold">Wage Month</th>
-                    <th className="px-3 py-2 font-semibold">Challan Type</th>
-                    <th className="px-3 py-2 font-semibold">Challan Status</th>
-                    <th className="px-3 py-2 font-semibold">AC(1)</th>
-                    <th className="px-3 py-2 font-semibold">AC(2)</th>
-                    <th className="px-3 py-2 font-semibold">AC(10)</th>
-                    <th className="px-3 py-2 font-semibold">AC(21)</th>
-                    <th className="px-3 py-2 font-semibold">AC(22)</th>
-                    <th className="px-3 py-2 font-semibold">Total Challan Amount</th>
-                    <th className="px-3 py-2 font-semibold">Pay Challan</th>
-                    <th className="px-3 py-2 font-semibold">Cancel Challan</th>
+              <table className="min-w-full border border-gray-300 text-sm text-gray-700">
+                <thead className="bg-[#d6ecfb] text-xs uppercase tracking-wide text-black">
+                  <tr>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">Sr. No.</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">TRRN</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">Wage Month</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">Challan Type</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">Challan Status</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">AC(1)</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">AC(2)</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">AC(10)</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">AC(21)</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">AC(22)</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-left">Total Challan Amount</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-center">Pay Challan</th>
+                    <th className="border border-gray-300 px-3 py-2 font-semibold text-center">Cancel Challan</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody>
                   {inProcess.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className="px-3 py-6 text-center text-sm text-gray-500">
+                      <td colSpan={13} className="border border-gray-300 px-3 py-6 text-center text-sm text-gray-500">
                         No challans are awaiting payment.
                       </td>
                     </tr>
                   ) : (
-                    inProcess.map((challan, index) => (
-                      <tr key={challan._id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2">{index + 1}</td>
-                        <td className="px-3 py-2 font-medium text-gray-800">{challan.trrn}</td>
-                        <td className="px-3 py-2">{formatMonthLabel(challan.wageMonth)}</td>
-                        <td className="px-3 py-2">Monthly Contribution</td>
-                        <td className="px-3 py-2">Due for Payment</td>
-                        <td className="px-3 py-2">{formatAmount(challan.accounts?.ac1)}</td>
-                        <td className="px-3 py-2">{formatAmount(challan.accounts?.ac2)}</td>
-                        <td className="px-3 py-2">{formatAmount(challan.accounts?.ac10)}</td>
-                        <td className="px-3 py-2">{formatAmount(challan.accounts?.ac21)}</td>
-                        <td className="px-3 py-2">{formatAmount(challan.accounts?.ac22)}</td>
-                        <td className="px-3 py-2 font-semibold text-gray-900">
+                    inProcess.map((challan, index) => {
+                      const isFullPaymentChallan =
+                        !!fullPaymentContext &&
+                        (fullPaymentContext.challanId === challan._id ||
+                          fullPaymentContext.trrn === challan.trrn);
+                      const paymentLinkState = isFullPaymentChallan
+                        ? { mode: "full-payment", fullPaymentContext }
+                        : { mode: "simple" };
+                      return (
+                        <tr key={challan._id} className="bg-white">
+                        <td className="border border-gray-200 px-3 py-2">{index + 1}</td>
+                        <td className="border border-gray-200 px-3 py-2 font-medium text-gray-800">{challan.trrn}</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatMonthLabel(challan.wageMonth)}</td>
+                        <td className="border border-gray-200 px-3 py-2">Monthly Contribution</td>
+                        <td className="border border-gray-200 px-3 py-2">Due for Payment</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatAmount(challan.accounts?.ac1)}</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatAmount(challan.accounts?.ac2)}</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatAmount(challan.accounts?.ac10)}</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatAmount(challan.accounts?.ac21)}</td>
+                        <td className="border border-gray-200 px-3 py-2">{formatAmount(challan.accounts?.ac22)}</td>
+                        <td className="border border-gray-200 px-3 py-2 font-semibold text-gray-900">
                           {formatAmount(challan.totalAmount)}
                         </td>
-                        <td className="px-3 py-2 text-center">
+                        <td className="border border-gray-200 px-3 py-2 text-center">
                           <Link
                             to={`/returns/challans/${challan._id}`}
-                            className="rounded bg-[#047857] px-3 py-1 text-center text-xs font-semibold text-white hover:bg-[#065f46]"
+                            state={paymentLinkState}
+                            className="inline-flex items-center justify-center rounded-full bg-[#0fb4d6] px-4 py-1 text-center text-xs font-semibold text-black shadow hover:bg-[#093a75]"
                           >
                             Pay
                           </Link>
                         </td>
-                        <td className="px-3 py-2 text-center">
+                        <td className="border border-gray-200 px-3 py-2 text-center">
                           <Link
                             to={`/returns/challans/${challan._id}/cancel`}
-                            className="rounded border border-rose-400 px-3 py-1 text-center text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                            className="inline-flex items-center justify-center rounded-full bg-[#d8a40a] px-4 py-1 text-center text-xs font-semibold text-black shadow hover:bg-[#093a75]"
                           >
                             Cancel
                           </Link>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>

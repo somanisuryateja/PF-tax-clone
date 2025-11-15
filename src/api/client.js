@@ -21,6 +21,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('pf-token');
       localStorage.removeItem('pf-employer');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('pf-force-logout'));
+      }
     }
     return Promise.reject(error);
   }

@@ -87,7 +87,14 @@ const PaymentGatewayPage = () => {
         setError(response.data.message || "Invalid banking credentials. Please check your username and password.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Network error. Please check your connection and try again.");
+      // Don't show logout error for bank credential validation failures (400 status)
+      // Only show error message, don't let 401 from expired token cause issues here
+      if (err.response?.status === 401 && err.response?.data?.message?.includes('token')) {
+        // Token expired - this will be handled by the interceptor
+        setError("Your session has expired. Please log in again.");
+      } else {
+        setError(err.response?.data?.message || "Network error. Please check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }

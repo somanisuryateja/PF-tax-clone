@@ -276,6 +276,7 @@ const ReturnMonthlyPage = () => {
                       {item.challan ? (
                         <Link
                           to={`/returns/challans/${item.challan}`}
+                          state={{ mode: "simple" }}
                           className="inline-flex items-center justify-center rounded-full bg-[#047857] px-3 py-1 text-xs font-semibold text-white shadow hover:bg-[#065f46]"
                         >
                           View / Prepare Challan

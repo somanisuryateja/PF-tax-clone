@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader.jsx";
+import BlueNavbar from "../components/BlueNavbar.jsx";
 import { apiClient } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -17,6 +18,7 @@ const ChallanPaymentPage = () => {
   const { employer } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [challan, setChallan] = useState(null);
@@ -24,6 +26,15 @@ const ChallanPaymentPage = () => {
   const [selectedBank, setSelectedBank] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [storedFullPaymentContext, setStoredFullPaymentContext] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = sessionStorage.getItem("pf-full-payment-context");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -54,18 +65,37 @@ const ChallanPaymentPage = () => {
     }
   }, [id]);
 
-  const accountSummary = useMemo(() => {
-    if (!challan) return [];
-    return [
-      { label: "A/C 1 (EPF)", value: challan.accounts?.ac1 },
-      { label: "A/C 2 (Admin Charges)", value: challan.accounts?.ac2 },
-      { label: "A/C 10 (EPS)", value: challan.accounts?.ac10 },
-      { label: "A/C 21 (EDLI)", value: challan.accounts?.ac21 },
-      { label: "A/C 22 (EDLI Admin Charges)", value: challan.accounts?.ac22 },
-    ];
-  }, [challan]);
+  useEffect(() => {
+    if (location.state?.fullPaymentContext) {
+      setStoredFullPaymentContext(location.state.fullPaymentContext);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pf-full-payment-context", JSON.stringify(location.state.fullPaymentContext));
+      }
+    }
+  }, [location.state?.fullPaymentContext]);
+
+  const activeFullPaymentContext = useMemo(() => {
+    if (location.state?.fullPaymentContext) return location.state.fullPaymentContext;
+    if (
+      storedFullPaymentContext &&
+      (!storedFullPaymentContext.challanId || storedFullPaymentContext.challanId === id)
+    ) {
+      return storedFullPaymentContext;
+    }
+    return null;
+  }, [location.state?.fullPaymentContext, storedFullPaymentContext, id]);
+
+  const mode = location.state?.mode ?? (activeFullPaymentContext ? "full-payment" : "simple");
+  const isFullPaymentMode = mode === "full-payment";
 
   const isPaid = challan?.status === "paid";
+
+  useEffect(() => {
+    if (isPaid && typeof window !== "undefined") {
+      sessionStorage.removeItem("pf-full-payment-context");
+      setStoredFullPaymentContext(null);
+    }
+  }, [isPaid]);
   const wageMonthLabel = useMemo(() => {
     if (!challan?.wageMonth) return "—";
     if (!challan.wageMonth.includes("-")) return challan.wageMonth;
@@ -74,6 +104,26 @@ const ChallanPaymentPage = () => {
     if (Number.isNaN(date.getTime())) return challan.wageMonth;
     return `${date.toLocaleString("en-US", { month: "short" })} ${year}`;
   }, [challan?.wageMonth]);
+
+  const fullPaymentDetails = useMemo(() => {
+    if (!isFullPaymentMode) return null;
+    const baseAmount = activeFullPaymentContext?.returnAmount ?? challan?.totalAmount ?? 0;
+    const interest7q = activeFullPaymentContext?.interest7q ?? Math.round(baseAmount * 0.012);
+    const damages14b = activeFullPaymentContext?.damages14b ?? Math.round(baseAmount * 0.005);
+    const grandTotal = activeFullPaymentContext?.grandTotal ?? baseAmount + interest7q + damages14b;
+    return {
+      trrn: activeFullPaymentContext?.trrn ?? challan?.trrn ?? "—",
+      wageMonth: activeFullPaymentContext?.wageMonth ?? wageMonthLabel ?? "—",
+      returnAmount: baseAmount,
+      interest7q,
+      damages14b,
+      grandTotal,
+    };
+  }, [isFullPaymentMode, activeFullPaymentContext, challan?.trrn, challan?.totalAmount, wageMonthLabel]);
+
+  const payableAmount = isFullPaymentMode
+    ? fullPaymentDetails?.grandTotal ?? challan?.totalAmount ?? 0
+    : challan?.totalAmount ?? 0;
 
   const handlePayChallan = () => {
     if (!selectedBank) {
@@ -85,24 +135,11 @@ const ChallanPaymentPage = () => {
       state: {
         challanId: id,
         selectedBank: selectedBank,
-        amount: challan.totalAmount,
+        amount: payableAmount,
         trrn: challan.trrn,
         wageMonth: challan.wageMonth,
       },
     });
-  };
-
-  const handleCancelChallan = async () => {
-    setSubmitting(true);
-    setError("");
-    try {
-      await apiClient.post(`/challans/${id}/cancel`);
-      navigate("/returns/challans", { replace: true });
-    } catch (err) {
-      setError(err.response?.data?.message ?? "Unable to cancel challan.");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -130,7 +167,6 @@ const ChallanPaymentPage = () => {
   }
 
   // Check if payment was successful from gateway navigation
-  const location = useLocation();
   const paymentSuccess = location.state?.paymentSuccess;
   const gatewayPayment = location.state?.payment;
 
@@ -149,92 +185,79 @@ const ChallanPaymentPage = () => {
     return (
       <div className="min-h-screen bg-[#f7f8fa]">
         <DashboardHeader />
+        <BlueNavbar />
 
-        <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
-          <header className="rounded-md border border-gray-300 bg-white px-6 py-4 shadow-sm">
-            <div>
-              <h1 className="text-lg font-semibold text-[#b30000]">Challan Payment Response</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Home / Return Home Page / View/Pay Challan / Challan Payment Response
-              </p>
-            </div>
-          </header>
+        <main className="mx-auto px-6 py-8 space-y-6">
+          <div className="w-full px-4 py-2 bg-gray-100 mb-2">
+            <nav className="flex flex-wrap items-center text-[13px] font-semibold">
+              <Link to="/dashboard" className="text-blue-600 hover:underline">
+                Home
+              </Link>
+              <span className="mx-2 text-gray-500">/</span>
+              <Link to="/returns" className="text-blue-600 hover:underline">
+                Return Home Page
+              </Link>
+              <span className="mx-2 text-gray-500">/</span>
+              <Link to="/returns/challans" className="text-black hover:underline">
+                View / Pay Challans
+              </Link>
+              <span className="mx-2 text-gray-500">/</span>
+              <span className="text-black">Challan Payment Response</span>
+            </nav>
+          </div>
 
-          <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-            <div className={`rounded-t-md border-b ${bannerBg} px-6 py-4`}>
+          <section className="mx-auto max-w-4xl rounded-md border border-gray-300 bg-white shadow-sm">
+            <div className={`rounded-t-md border-b px-6 py-4 ${isSuccessful ? 'bg-[#deebd8]' : 'bg-rose-50'}`}>
               <div className="flex items-center gap-3">
-                {isSuccessful ? (
-                  <svg
-                    className={`h-6 w-6 ${iconColor}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className={`h-6 w-6 ${iconColor}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                )}
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded text-sm font-bold ${
+                    isSuccessful ? 'bg-[#3b6a40] text-white' : 'bg-white text-rose-700'
+                  }`}
+                >
+                  {isSuccessful ? '✓' : '✕'}
+                </div>
                 <h2 className={`text-base font-semibold ${bannerText}`}>{paymentStatus}</h2>
               </div>
             </div>
 
-            <div className="px-6 py-6">
+            <div className="px-6 py-6 space-y-6">
               <h3 className="mb-4 text-sm font-semibold text-gray-800">Payment Details:</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-sm text-gray-700">
-                  <tbody>
-                    <tr className="border-b border-gray-200">
-                      <th className="w-1/3 bg-gray-50 px-4 py-2 text-left font-semibold">TRRN</th>
-                      <td className="px-4 py-2">{challan.trrn || "—"}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <th className="bg-gray-50 px-4 py-2 text-left font-semibold">Bank</th>
-                      <td className="px-4 py-2">{paymentData.bank || "—"}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <th className="bg-gray-50 px-4 py-2 text-left font-semibold">CRN</th>
-                      <td className="px-4 py-2">{paymentData.crn || "—"}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <th className="bg-gray-50 px-4 py-2 text-left font-semibold">Amount paid</th>
-                      <td className="px-4 py-2 font-semibold">
-                        ₹{formatMoney(paymentData.amount || challan.totalAmount)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <th className="bg-gray-50 px-4 py-2 text-left font-semibold">Payment Status</th>
-                      <td className={`px-4 py-2 font-semibold ${statusColor}`}>{paymentStatus}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6">
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  Click "Home" here to go to home page
-                </Link>
-              </div>
+              <table className="w-full text-sm text-gray-700 border border-gray-300">
+                <tbody>
+                  <tr>
+                    <th className="w-1/3 border border-gray-200 px-4 py-3 text-left font-semibold">Bank</th>
+                    <td className="border border-gray-200 px-4 py-3">{paymentData.bank || "—"}</td>
+                  </tr>
+                  <tr>
+                    <th className="border border-gray-200 px-4 py-3 text-left font-semibold">TRRN</th>
+                    <td className="border border-gray-200 px-4 py-3">{challan.trrn || "—"}</td>
+                  </tr>
+                  <tr>
+                    <th className="border border-gray-200 px-4 py-3 text-left font-semibold">CRN</th>
+                    <td className="border border-gray-200 px-4 py-3">{paymentData.crn || "—"}</td>
+                  </tr>
+                  <tr>
+                    <th className="border border-gray-200 px-4 py-3 text-left font-semibold">Paid Amount</th>
+                    <td className="border border-gray-200 px-4 py-3 font-semibold">
+                      ₹{formatMoney(paymentData.amount || challan.totalAmount)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="border border-gray-200 px-4 py-3 text-left font-semibold">Payment Status</th>
+                    <td className={`border border-gray-200 px-4 py-3 font-semibold ${statusColor}`}>{paymentStatus}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={2} className="border border-gray-200 px-4 py-4 text-center">
+                      <Link
+                        to="/dashboard"
+                        className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        Click "Home" here to go to home page
+                      </Link>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </section>
         </main>
@@ -245,25 +268,32 @@ const ChallanPaymentPage = () => {
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
       <DashboardHeader />
+      <BlueNavbar />
 
-      <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
-        <header className="rounded-md border border-gray-300 bg-white px-6 py-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-lg font-semibold text-[#b30000]">Challan Payment</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Home › Return Home Page › Return Monthly Dashboard › View / Pay Challans › Challan Payment
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate("/returns/challans")}
-              className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Back to Challan List
-            </button>
-          </div>
-        </header>
+      <main className="mx-auto py-8 space-y-6">
+        <div className="w-full px-4 py-2 bg-gray-100 mb-2">
+          <nav className="flex flex-wrap items-center text-[13px] font-semibold">
+            <Link to="/dashboard" className="text-blue-600 hover:underline">
+              Home
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns" className="text-blue-600 hover:underline">
+              Return Home Page
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns/monthly" className="text-black hover:underline">
+              Return Monthly Dashboard
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns/challans" className="text-black hover:underline">
+              View / Pay Challans
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <span className="text-black">Challan Payment</span>
+          </nav>
+        </div>
+
+
 
         {error && (
           <div className="rounded border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -271,115 +301,155 @@ const ChallanPaymentPage = () => {
           </div>
         )}
 
-        <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-[#f5f7fa] px-6 py-4">
-            <h2 className="text-base font-semibold text-gray-800">Challan Details</h2>
-          </div>
-          <div className="grid gap-4 px-6 py-6 text-sm text-gray-700 md:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">TRRN</p>
-              <p className="mt-1 text-base font-semibold text-gray-900">{challan.trrn}</p>
+        {!isFullPaymentMode && (
+          <section className="mx-auto max-w-xl rounded-lg border border-gray-300 bg-white shadow-lg">
+            {/* Header */}
+            <div className="border-b border-gray-200 bpx-6 py-4">
+              <h2 className="text-[16px] font-semibold text-[#b8860b] px-4">* Challan Payment</h2>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">Wage Month</p>
-              <p className="mt-1 text-base font-semibold text-gray-900">{wageMonthLabel}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">Challan Type</p>
-              <p className="mt-1 text-base font-semibold text-gray-900">Monthly Contribution</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase text-gray-500">Status</p>
-              <p className="mt-1 text-base font-semibold text-gray-900 capitalize">{challan.status}</p>
-            </div>
-          </div>
-        </section>
 
-        <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-[#f5f7fa] px-6 py-4">
-            <h2 className="text-base font-semibold text-gray-800">Account Wise Summary</h2>
-          </div>
-          <div className="overflow-x-auto px-6 py-6">
-            <table className="min-w-full divide-y divide-gray-200 text-sm text-gray-700">
-              <thead className="bg-gray-50">
-                <tr className="text-left">
-                  <th className="px-3 py-2 font-semibold">A/C 1</th>
-                  <th className="px-3 py-2 font-semibold">A/C 2</th>
-                  <th className="px-3 py-2 font-semibold">A/C 10</th>
-                  <th className="px-3 py-2 font-semibold">A/C 21</th>
-                  <th className="px-3 py-2 font-semibold">A/C 22</th>
-                  <th className="px-3 py-2 font-semibold">Total Challan Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {accountSummary.map((item) => (
-                    <td key={item.label} className="border border-gray-200 px-3 py-2">
-                      {formatAmount(item.value)}
-                    </td>
+            {/* Body */}
+            <div className="space-y-4 px-6 py-6 text-sm text-gray-700">
+              <div className="border-b border-gray-200 px-4 py-3 text-base font-semibold text-gray-900 flex flex-wrap items-center justify-between gap-4">
+                <span className="text-gray-600">
+                  TRRN: <span className="ml-2 text-gray-900">{challan.trrn}</span>
+                </span>
+                <span className="text-gray-600">
+                  Wage Month: <span className="ml-2 text-gray-900">{wageMonthLabel}</span>
+                </span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <span className="text-gray-600 text-base font-semibold">Total Amount:</span>
+                <span className="text-lg font-semibold text-[#0f766e]">{formatAmount(payableAmount)}</span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 text-base text-gray-800">
+                Please select your payment bank and click on the{" "}
+                <strong>"Make Payment"</strong> button below to initiate payment.
+              </div>
+
+      <div className="border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
+        <label className="text-xs font-semibold uppercase text-gray-500">
+          Select Bank
+        </label>
+        <select
+          value={selectedBank}
+          onChange={(event) => setSelectedBank(event.target.value)}
+          className="flex-1 min-w-[200px] rounded border border-gray-300 px-3 py-2 text-sm focus:border-[#1d4ed8] focus:outline-none focus:ring-1 focus:ring-[#1d4ed8]"
+        >
+          <option value="">Select Bank</option>
+          {banks.map((bank) => (
+            <option key={bank.name} value={bank.name}>
+              {bank.name}
+            </option>
+          ))}
+        </select>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3">
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-[#0b4d9b] px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#093a75] disabled:opacity-60"
+                  onClick={handlePayChallan}
+                  disabled={submitting || !selectedBank}
+                >
+                  {submitting
+                    ? "Processing…"
+                    : `Make Payment of ${formatAmount(payableAmount)}`}
+                </button>
+              </div>
+
+              <div className="rounded border border-[#bfdbfe] bg-[#e0f2fe] px-4 py-3 text-[0.85rem] text-[#0c4a6e]">
+                <strong>Note to Employee:</strong> If the payment has been made
+                successfully but the same amount has been debited from your bank
+                account, please do not make the payment again for the same TRRN.
+                Instead, check the status in the system.
+              </div>
+            </div>
+          </section>
+        )}
+
+
+        {isFullPaymentMode && fullPaymentDetails && (
+          <section className="mx-auto max-w-xl rounded-lg border border-gray-300 bg-white shadow-lg">
+            <div className="border-b border-gray-200 px-6 py-4">
+              <h2 className="text-[16px] font-semibold text-[#b8860b]">* Challan Payment (Full Payment)</h2>
+            </div>
+            <div className="space-y-4 px-6 py-6 text-sm text-gray-700">
+              <div className="border-b border-gray-200 px-4 py-3 text-base font-semibold text-gray-900 flex flex-wrap items-center justify-between gap-4">
+                <span className="text-gray-600">
+                  TRRN: <span className="ml-2 text-gray-900">{fullPaymentDetails.trrn}</span>
+                </span>
+                <span className="text-gray-600">
+                  Wage Month: <span className="ml-2 text-gray-900">{fullPaymentDetails.wageMonth}</span>
+                </span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <span className="text-gray-600 text-base font-semibold">Return Amount:</span>
+                <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.returnAmount)}</span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 text-base text-red-600">
+                You are liable to pay Damages (14B) and Interest (7Q) on this challan.
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <span className="text-gray-600 text-base font-semibold">Interest (7Q):</span>
+                <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.interest7q)}</span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <span className="text-gray-600 text-base font-semibold">Damages (14B):</span>
+                <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.damages14b)}</span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <span className="text-gray-600 text-base font-semibold">Grand Total:</span>
+                <span className="text-lg font-semibold text-[#0f766e]">{formatAmount(fullPaymentDetails.grandTotal)}</span>
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 text-base text-gray-800">
+                Please select your payment bank and click on the{" "}
+                <strong>"Make Payment"</strong> button below to initiate payment.
+              </div>
+
+              <div className="border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-4">
+                <label className="text-xs font-semibold uppercase text-gray-500">Select Bank</label>
+                <select
+                  value={selectedBank}
+                  onChange={(event) => setSelectedBank(event.target.value)}
+                  className="flex-1 min-w-[200px] rounded border border-gray-300 px-3 py-2 text-sm focus:border-[#1d4ed8] focus:outline-none focus:ring-1 focus:ring-[#1d4ed8]"
+                >
+                  <option value="">Select Bank</option>
+                  {banks.map((bank) => (
+                    <option key={bank.name} value={bank.name}>
+                      {bank.name}
+                    </option>
                   ))}
-                  <td className="border border-gray-200 px-3 py-2 font-semibold text-[#0f766e]">
-                    {formatAmount(challan.totalAmount)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </select>
+              </div>
 
-        <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-[#f5f7fa] px-6 py-4">
-            <h2 className="text-base font-semibold text-gray-800">Challan Payment</h2>
-          </div>
-          <div className="space-y-4 px-6 py-6 text-sm text-gray-700">
-            <div className="rounded border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-sm text-[#1d4ed8]">
-              Please review your payment and click on the <strong>“Make Payment of {formatAmount(challan.totalAmount)}”</strong>{" "}
-              button. Only banks listed in Annexure 3 are available for the payment gateway.
-            </div>
+              <div className="border-b border-gray-200 px-4 py-3">
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-[#0b4d9b] px-5 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#093a75] disabled:opacity-60"
+                  onClick={handlePayChallan}
+                  disabled={submitting || !selectedBank}
+                >
+                  {submitting ? "Processing…" : `Make Payment of ${formatAmount(payableAmount)}`}
+                </button>
+              </div>
 
-            <div>
-              <label className="text-xs font-semibold uppercase text-gray-500">Select Bank</label>
-              <select
-                value={selectedBank}
-                onChange={(event) => setSelectedBank(event.target.value)}
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-              >
-                <option value="">Select bank</option>
-                {banks.map((bank) => (
-                  <option key={bank.name} value={bank.name}>
-                    {bank.name}
-                  </option>
-                ))}
-              </select>
+              <div className="rounded border border-[#bfdbfe] bg-[#e0f2fe] px-4 py-3 text-[0.85rem] text-[#0c4a6e]">
+                <strong>Note to Employer:</strong> If the payment has been made successfully but the same amount has been
+                debited from your bank account, please do not make the payment again for the same TRRN. Instead, check the
+                status in the system.
+              </div>
             </div>
-
-            <div className="flex flex-wrap gap-3 pt-4">
-              <button
-                type="button"
-                className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => navigate("/returns/challans")}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="rounded bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0b5c57] disabled:opacity-60"
-                onClick={handlePayChallan}
-                disabled={submitting || !selectedBank}
-              >
-                {submitting ? "Processing…" : `Make Payment of ${formatAmount(challan.totalAmount)}`}
-              </button>
-              <button
-                type="button"
-                className="rounded border border-rose-400 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
-                onClick={handleCancelChallan}
-                disabled={submitting}
-              >
-                Cancel Challan
-              </button>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
     </div>
   );

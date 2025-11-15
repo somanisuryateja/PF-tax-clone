@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { apiClient, getStoredEmployer, setAuthToken, setEmployer } from '../api/client.js';
 
 const AuthContext = createContext(null);
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     console.log('🔴 [AUTH CONTEXT] logout() called');
     console.log('🔴 [AUTH CONTEXT] Clearing token state...');
     setAuthToken('');
@@ -39,7 +39,19 @@ export const AuthProvider = ({ children }) => {
     console.log('🔴 [AUTH CONTEXT] Clearing employer state variable...');
     setEmployerState(null);
     console.log('🔴 [AUTH CONTEXT] logout() completed');
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleForcedLogout = () => {
+      console.log('🔴 [AUTH CONTEXT] Forced logout event received');
+      logout();
+    };
+
+    window.addEventListener('pf-force-logout', handleForcedLogout);
+    return () => {
+      window.removeEventListener('pf-force-logout', handleForcedLogout);
+    };
+  }, [logout]);
 
   const value = useMemo(
     () => ({

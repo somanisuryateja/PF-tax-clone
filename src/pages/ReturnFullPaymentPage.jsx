@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader.jsx";
+import BlueNavbar from "../components/BlueNavbar.jsx";
 import { apiClient } from "../api/client.js";
 
 const formatMoney = (value) =>
@@ -25,11 +26,6 @@ const ReturnFullPaymentPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
-
-  const breadcrumb = useMemo(
-    () => "Home › Return Home Page › Return Monthly Dashboard › Due / Deposit Balance Summary › Return Summary (Full Payment)",
-    []
-  );
 
   const loadDetails = useCallback(async () => {
     setLoading(true);
@@ -59,7 +55,6 @@ const ReturnFullPaymentPage = () => {
   const totalEpfContribution = totals?.contributions?.employeePf ?? 0;
   const totalEpsContribution = totals?.contributions?.employerEps ?? 0;
   const totalDiffContribution = totals?.contributions?.difference ?? 0;
-  const totalRefundOfAdvance = totals?.contributions?.refund ?? 0;
   const totalEdliWages = totals?.wages?.edli ?? 0;
   const totalEdliContribution = Number((totalEdliWages * 0.005).toFixed(2));
 
@@ -89,6 +84,65 @@ const ReturnFullPaymentPage = () => {
     };
   }, [totals, totalEpfContribution, totalDiffContribution, totalEpfWages, totalEpsContribution, totalEdliContribution]);
 
+  const bifurcationRows = useMemo(() => {
+    if (!accountSummary) return [];
+    const epfContribution = accountSummary.balance.ac1;
+    const epfCharges = accountSummary.balance.ac2;
+    const epsContribution = accountSummary.balance.ac10;
+    const edliContribution = accountSummary.balance.ac21;
+    const edliCharges = accountSummary.balance.ac22;
+    const totalAmount = epfContribution + epfCharges + epsContribution + edliContribution + edliCharges;
+
+    return [
+      {
+        description: "Total EPF Contribution (A/C 1)",
+        rows: [
+          {
+            detail: "Total EPF Contribution EE Share + Total EPS Contribution + Total Refund of Advance",
+            amount: epfContribution,
+          },
+        ],
+      },
+      {
+        description: "Total EPF Charges (A/C 2)",
+        rows: [
+          { detail: "Administration Charges (₹)", amount: epfCharges },
+          { detail: "Inspection Charges (₹)", amount: 0 },
+        ],
+      },
+      {
+        description: "Total EPF Contribution (A/C 10)",
+        rows: [
+          {
+            detail: epsContribution ? "Total EPS Contribution (ER Share)" : "— (No entry / empty)",
+            amount: epsContribution || null,
+          },
+        ],
+      },
+      {
+        description: "Total EDLI Contribution (A/C 21)",
+        rows: [
+          {
+            detail: edliContribution ? "Total EDLI Contribution ER Share" : "— (No entry / empty)",
+            amount: edliContribution || null,
+          },
+        ],
+      },
+      {
+        description: "Total EDLI Charges (A/C 22)",
+        rows: [
+          { detail: "Administration Charges (₹)", amount: edliCharges },
+          { detail: "Inspection Charges (₹)", amount: 0 },
+        ],
+      },
+      {
+        description: "Total Amount (₹)",
+        rows: [{ detail: "", amount: totalAmount }],
+        emphasize: true,
+      },
+    ];
+  }, [accountSummary]);
+
   const handlePrepareChallan = () => {
     // If challan is already paid, don't open modal, just navigate to challans
     if (isChallanPaid) {
@@ -99,29 +153,63 @@ const ReturnFullPaymentPage = () => {
   };
 
   const handleFinalizeChallan = () => {
-    if (data?.challanId) {
-      navigate(`/returns/challans/${data.challanId}`);
+    if (data?.challanId && accountSummary) {
+      const returnAmount = accountSummary.balance.total ?? accountSummary.due.total ?? 0;
+      const interest7q = Math.round(returnAmount * 0.012);
+      const damages14b = Math.round(returnAmount * 0.005);
+      const grandTotal = returnAmount + interest7q + damages14b;
+
+      const fullPaymentPayload = {
+        challanId: data.challanId,
+        trrn: data.trrn ?? data.statement?.returnFileId ?? data?.challanId,
+        wageMonth: data.wageMonth,
+        returnAmount,
+        interest7q,
+        damages14b,
+        grandTotal,
+      };
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("pf-full-payment-context", JSON.stringify(fullPaymentPayload));
+      }
+
+      setShowModal(false);
+      navigate("/returns/challans", {
+        state: {
+          actionMessage: `Return File Id [${data.trrn ?? data.statement?.returnFileId ?? data?.challanId}] finalized. Please use View / Pay Challans to proceed with payment.`,
+          fullPaymentContext: fullPaymentPayload,
+        },
+      });
     }
   };
 
   const handleCancelModal = () => {
     setShowModal(false);
-    navigate("/returns/challans");
   };
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
       <DashboardHeader />
+      <BlueNavbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
-        <header className="rounded-md border border-gray-300 bg-white px-6 py-4 shadow-sm">
-          <div>
-            <h1 className="text-lg font-semibold text-[#b30000]">
-              Account Wise Due Deposit Balance Summary - {wageMonthLabel || "—"}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">{breadcrumb}</p>
-          </div>
-        </header>
+      <main className="mx-auto  px-6 py-8 space-y-6">
+        <div className="w-full px-4 py-2 bg-gray-100 mb-2">
+          <nav className="flex flex-wrap items-center text-[13px] font-semibold">
+            <Link to="/dashboard" className="text-blue-600 hover:underline">
+              Home
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns" className="text-blue-600 hover:underline">
+              Return Home Page
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <Link to="/returns/monthly" className="text-black hover:underline">
+              Return Monthly Dashboard
+            </Link>
+            <span className="mx-2 text-gray-500">/</span>
+            <span className="text-black">Return Summary (Full Payment)</span>
+          </nav>
+        </div>
 
         {error && (
           <div className="rounded border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -141,134 +229,98 @@ const ReturnFullPaymentPage = () => {
           </div>
         )}
 
+
         {accountSummary && (
-          <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-            <header className="border-b border-gray-200 bg-[#e6f2ff] px-6 py-4">
-              <h2 className="text-base font-semibold text-gray-800">
-                Account Wise Due Deposit Balance Summary - {wageMonthLabel || "—"}
+          <>
+            <div className="mx-4 mb-2 w-full border-t-2 border-b-2 border-[#99c2ff] px-4 py-2">
+              <h2 className="text-[16px] font-semibold text-[#b8860b]">
+                * Account Wise Due Deposit Balance Summary - {wageMonthLabel || "—"}
               </h2>
-            </header>
-            <div className="overflow-x-auto px-6 py-6">
-              <table className="min-w-full border-collapse text-sm text-gray-700">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="border border-gray-200 px-3 py-2 text-left font-semibold">Head</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">AC 1 (EPF) (₹)</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">AC 2 EPF Admin Charges (₹)</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">AC 10 (EPS) (₹)</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">AC 21 (EDLI) (₹)</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">AC 22 (EDLI Admin Charges) (₹)</th>
-                    <th className="border border-gray-200 px-3 py-2 text-right font-semibold">Total (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold">Due</th>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac1)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac2)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac10)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac21)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac22)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right font-semibold">{formatMoney(accountSummary.due.total)}</td>
-                  </tr>
-                  <tr>
-                    <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold">Paid</th>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac1)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac2)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac10)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac21)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac22)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right font-semibold">{formatMoney(accountSummary.paid.total)}</td>
-                  </tr>
-                  <tr>
-                    <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold">Balance</th>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.balance.ac1)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.balance.ac2)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.balance.ac10)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.balance.ac21)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.balance.ac22)}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right font-semibold">{formatMoney(accountSummary.balance.total)}</td>
-                  </tr>
-                </tbody>
-              </table>
             </div>
-          </section>
-        )}
+            <section className="mx-4 rounded-md border border-gray-300 bg-white shadow-sm">
+              <div className="space-y-6 px-6 py-6">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm text-gray-700">
+                    <thead className="bg-[#d6ecfb] text-xs uppercase tracking-wide text-black">
+                      <tr className="text-right">
+                        <th className="border border-gray-200 px-3 py-2 text-left font-semibold" />
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">AC 1 (EPF) (₹)</th>
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">AC 2 EPF Admin Charges (₹)</th>
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">AC 10 (EPS) (₹)</th>
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">AC 21 (EDLI) (₹)</th>
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">AC 22 (EDLI Admin Charges) (₹)</th>
+                        <th className="border border-gray-200 px-3 py-2 font-semibold">Total (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold">Due</th>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac1)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac2)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac10)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac21)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.due.ac22)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right font-semibold">{formatMoney(accountSummary.due.total)}</td>
+                      </tr>
+                      <tr>
+                        <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold">Paid</th>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac1)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac2)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac10)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac21)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right">{formatMoney(accountSummary.paid.ac22)}</td>
+                        <td className="border border-gray-200 px-3 py-2 text-right font-semibold">{formatMoney(accountSummary.paid.total)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-        {accountSummary && (
-          <section className="rounded-md border border-gray-300 bg-white shadow-sm">
-            <header className="border-b border-gray-200 bg-[#f5f7fa] px-6 py-4 text-base font-semibold text-gray-800">
-              Account Wise Bifurcation of Balance Amount
-            </header>
-            <div className="px-6 py-6 space-y-4">
-              {/* S.No 7: Total EPF Contribution = A/C 1 */}
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total EPF Contribution (A/C 1):</h3>
-                  <span className="text-sm font-semibold text-gray-900">₹{formatMoney(accountSummary.balance.ac1)}</span>
-                </div>
-                <p className="text-xs text-gray-600">
-                  Total EPF Contribution EE Share + Total EPS Contribution ER Share + Total Refund of Advance (₹)
-                </p>
-              </div>
-
-              {/* S.No 8: Total EPF Charges = A/C 2 */}
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total EPF Charges (A/C 2):</h3>
-                  <span className="text-sm font-semibold text-gray-900">₹{formatMoney(accountSummary.balance.ac2)}</span>
-                </div>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <p>Administration Charges (₹) - {formatMoney(accountSummary.balance.ac2)}</p>
-                  <p>Inspection Charges (₹) - Not Applicable</p>
-                </div>
-              </div>
-
-              {/* S.No 9: Total EPS Contribution = A/C 10 */}
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total EPS Contribution (A/C 10):</h3>
-                  <span className="text-sm font-semibold text-gray-900">₹{formatMoney(accountSummary.balance.ac10)}</span>
-                </div>
-              </div>
-
-              {/* S.No 10: Total EDLI Contribution = A/C 21 */}
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total EDLI Contribution ER Share A/C 21 (D):</h3>
-                  <span className="text-sm font-semibold text-gray-900">₹{formatMoney(accountSummary.balance.ac21)}</span>
-                </div>
-              </div>
-
-              {/* S.No 11: Total EDLI Charges = A/C 22 */}
-              <div className="rounded border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total EDLI Charges (A/C 22):</h3>
-                  <span className="text-sm font-semibold text-gray-900">₹{formatMoney(accountSummary.balance.ac22)}</span>
-                </div>
-                <div className="space-y-1 text-xs text-gray-600">
-                  <p>Administration Charges (₹) - {formatMoney(accountSummary.balance.ac22)}</p>
-                  <p>Inspection Charges (₹) - Not Applicable</p>
+                <div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border border-gray-300 text-sm text-gray-700">
+                      <tbody>
+                        <tr className="bg-[#d6ecfb]">
+                          <th
+                            colSpan={3}
+                            className="border border-gray-200 px-3 py-2 text-left text-sm font-semibold uppercase tracking-wide text-black"
+                          >
+                            Account Wise Bifurcation of Balance Amount
+                          </th>
+                        </tr>
+                        {bifurcationRows.map((group) =>
+                          group.rows.map((row, index) => (
+                            <tr
+                              key={`${group.description}-${index}`}
+                              className={group.emphasize ? "bg-[#d6e9e3]" : undefined}
+                            >
+                              {index === 0 && (
+                                <th
+                                  rowSpan={group.rows.length}
+                                  className="border border-gray-200 px-3 py-2 text-left font-medium text-gray-800 align-top"
+                                >
+                                  {group.description}
+                                </th>
+                              )}
+                              <td className="border border-gray-200 px-3 py-2 text-left text-gray-600">
+                                {row.detail || ""}
+                              </td>
+                              <td
+                                className={`border border-gray-200 px-3 py-2 text-right font-semibold ${
+                                  group.emphasize ? "text-black font-bold" : ""
+                                }`}
+                              >
+                                {row.amount === null || row.amount === undefined ? "—" : `₹${formatMoney(row.amount)}`}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-
-              {/* S.No 12: Total Amount = Sum of S.No 7,8,9,10,11 */}
-              <div className="rounded border-2 border-blue-300 bg-blue-50 p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800">Total Amount (₹):</h3>
-                  <span className="text-base font-bold text-blue-900">
-                    ₹{formatMoney(
-                      accountSummary.balance.ac1 +
-                        accountSummary.balance.ac2 +
-                        accountSummary.balance.ac10 +
-                        accountSummary.balance.ac21 +
-                        accountSummary.balance.ac22
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
+            </section>
+          </>
         )}
 
         <div className="flex justify-center">
@@ -276,7 +328,7 @@ const ReturnFullPaymentPage = () => {
             type="button"
             onClick={handlePrepareChallan}
             disabled={!data?.challanId || !accountSummary}
-            className="rounded bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md bg-[#0b4d9b] px-8 py-3 text-sm font-semibold text-white shadow hover:bg-[#093a75] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isChallanPaid ? "View Payment Details" : "Prepare Challan"}
           </button>
@@ -292,59 +344,66 @@ const ReturnFullPaymentPage = () => {
             </div>
             <div className="px-6 py-6">
               <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-sm text-gray-700">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full border border-gray-300 text-sm text-gray-700">
+                  <thead className="bg-[#d6ecfb] text-xs uppercase tracking-wide text-black">
                     <tr>
-                      <th className="border border-gray-200 px-4 py-2 text-left font-semibold">ACCOUNT HEAD</th>
-                      <th className="border border-gray-200 px-4 py-2 text-right font-semibold">DUE AMOUNT</th>
+                      <th className="border border-gray-200 px-4 py-2 text-left font-semibold">Account Head</th>
+                      <th className="border border-gray-200 px-4 py-2 text-right font-semibold">Due Amount (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-gray-200 px-4 py-2">AC-1 (₹)</td>
+                      <td className="border border-gray-200 px-4 py-2">AC 1 (EPF)</td>
                       <td className="border border-gray-200 px-4 py-2 text-right">{formatMoney(accountSummary.balance.ac1)}</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 px-4 py-2">AC-2 (₹)</td>
+                      <td className="border border-gray-200 px-4 py-2">AC 2 (Admin Charges)</td>
                       <td className="border border-gray-200 px-4 py-2 text-right">{formatMoney(accountSummary.balance.ac2)}</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 px-4 py-2">AC-10 (₹)</td>
+                      <td className="border border-gray-200 px-4 py-2">AC 10 (EPS)</td>
                       <td className="border border-gray-200 px-4 py-2 text-right">{formatMoney(accountSummary.balance.ac10)}</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 px-4 py-2">AC-21 (₹)</td>
+                      <td className="border border-gray-200 px-4 py-2">AC 21 (EDLI)</td>
                       <td className="border border-gray-200 px-4 py-2 text-right">{formatMoney(accountSummary.balance.ac21)}</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 px-4 py-2">AC-22 (₹)</td>
+                      <td className="border border-gray-200 px-4 py-2">AC 22 (EDLI Admin)</td>
                       <td className="border border-gray-200 px-4 py-2 text-right">{formatMoney(accountSummary.balance.ac22)}</td>
                     </tr>
                     <tr className="bg-gray-50">
-                      <td className="border border-gray-200 px-4 py-2 font-semibold">Total Challan Amount (₹)</td>
-                      <td className="border border-gray-200 px-4 py-2 text-right font-semibold">
+                      <td className="border border-gray-200 px-4 py-2 font-semibold text-[#0f172a]">
+                        Total Challan Amount (₹)
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2 text-right font-semibold text-[#0f172a]">
                         {formatMoney(accountSummary.balance.total)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="border border-gray-200 px-4 py-2 text-center text-sm font-semibold text-red-600"
+                      >
+                        Note: Once finalized, you can't modify the challan details.
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-              <p className="mt-4 text-sm font-semibold text-red-600">
-                Note: Once finalized, you can't modify the challan details.
-              </p>
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+            <div className="flex justify-center gap-4 border-t border-gray-200 px-6 py-4">
               <button
                 type="button"
                 onClick={handleFinalizeChallan}
-                className="rounded bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="rounded-full bg-blue-600 px-8 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700"
               >
                 Finalize Challan
               </button>
               <button
                 type="button"
                 onClick={handleCancelModal}
-                className="rounded bg-red-600 px-6 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                className="rounded-full bg-red-600 px-8 py-2 text-sm font-semibold text-white shadow hover:bg-red-700"
               >
                 Cancel
               </button>
