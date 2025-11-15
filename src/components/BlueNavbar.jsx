@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 /**
  * 🔷 BlueNavbar Component
@@ -42,23 +42,19 @@ const BlueNavbar = () => {
               onMouseEnter={() => hasDropdown && setOpenDropdown(item.label)}
               onMouseLeave={() => hasDropdown && setOpenDropdown(null)}
             >
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center gap-1 px-4 py-3 border-r border-[#0d377a] transition-all duration-300 ${
-                    isActive
-                      ? "bg-[#002060] text-white font-semibold shadow-inner"
-                      : "hover:bg-[#1c4587] hover:text-white"
-                  }`
-                }
+              <button
+                type="button"
+                className={`flex items-center gap-1 px-4 py-3 border-r border-[#0d377a] transition-all duration-300 ${
+                  isOpen ? "bg-[#002060] text-white font-semibold shadow-inner" : "hover:bg-[#1c4587] hover:text-white"
+                }`}
                 onClick={(event) => {
                   if (hasDropdown) {
-                    event.preventDefault();
                     setOpenDropdown((prev) =>
                       prev === item.label ? null : item.label
                     );
                   } else {
                     setOpenDropdown(null);
+                    event.preventDefault();
                   }
                 }}
               >
@@ -74,7 +70,7 @@ const BlueNavbar = () => {
                     ▾
                   </span>
                 )}
-              </NavLink>
+              </button>
 
               {/* Dropdown menu */}
               {hasDropdown && isOpen && (
