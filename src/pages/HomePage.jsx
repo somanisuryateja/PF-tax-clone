@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { FaGlobe } from "react-icons/fa";
 import PublicHeader from "../components/PublicHeader.jsx";
 import HomeFooter from "../components/HomeFooter.jsx";
@@ -16,6 +17,14 @@ const bannerOptions = [
 ];
 
 const HomePage = () => {
+  const navigate = useNavigate();
+
+  const handleOptionClick = (option) => {
+    if (option === "ECR/Returns/Payment") {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white font-sans">
       <PublicHeader />
@@ -68,6 +77,7 @@ const HomePage = () => {
                 return (
                   <div
                     key={option}
+                    onClick={() => handleOptionClick(option)}
                     className={`flex items-center justify-center rounded-md border border-[#0d377a] bg-[#0b2c6b] px-3 py-2 text-center text-[0.9rem] font-medium text-white shadow-sm ${
                       isEnabled ? "transition-colors duration-200 hover:bg-white hover:text-[#0b2c6b] cursor-pointer" : ""
                     }`}
