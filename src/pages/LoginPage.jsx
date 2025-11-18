@@ -177,8 +177,13 @@ const LoginPage = () => {
 
                 {/* Error */}
                 {error && (
-                  <div className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
-                    ⚠️ {error}
+                  <div className="flex items-center gap-2 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-xs font-bold shrink-0">
+                      i
+                    </div>
+                    <span>
+                      <span className="font-semibold">Error:</span> {error}
+                    </span>
                   </div>
                 )}
 
