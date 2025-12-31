@@ -415,55 +415,6 @@ const ReturnDetailPage = () => {
           </div>
         </section>
 
-        {statement && (
-          <section className="mx-4 rounded-md border border-gray-300 bg-white shadow-sm">
-            <header className="border-b border-gray-200 bg-[#f5f7fa] px-6 py-4 text-base font-semibold text-gray-800">
-              Member Details
-            </header>
-            <div className="overflow-x-auto px-6 py-6">
-              <table className="min-w-full divide-y divide-gray-200 text-sm text-gray-700">
-                <thead className="bg-gray-50">
-                  <tr className="text-left">
-                    <th className="px-3 py-2 font-semibold">Sl. No.</th>
-                    <th className="px-3 py-2 font-semibold">UAN</th>
-                    <th className="px-3 py-2 font-semibold">Name as per Return</th>
-                    <th className="px-3 py-2 font-semibold">Name as per UAN Repository</th>
-                    <th className="px-3 py-2 font-semibold">Wages – Gross</th>
-                    <th className="px-3 py-2 font-semibold">Wages – EPF</th>
-                    <th className="px-3 py-2 font-semibold">Wages – EPS</th>
-                    <th className="px-3 py-2 font-semibold">Wages – EDLI / EDU</th>
-                    <th className="px-3 py-2 font-semibold">Contribution Remitted – EE</th>
-                    <th className="px-3 py-2 font-semibold">Contribution Remitted – EPS</th>
-                    <th className="px-3 py-2 font-semibold">Contribution Remitted – ER</th>
-                    <th className="px-3 py-2 font-semibold">Refunds</th>
-                    <th className="px-3 py-2 font-semibold">NCP Days</th>
-                    <th className="px-3 py-2 font-semibold">Principal Employer ID / TAN</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(statement.records ?? []).map((record, index) => (
-                    <tr key={record.uan ?? index} className="hover:bg-gray-50">
-                      <td className="px-3 py-2">{index + 1}</td>
-                      <td className="px-3 py-2 font-medium text-gray-900">{record.uan}</td>
-                      <td className="px-3 py-2">{record.memberName}</td>
-                      <td className="px-3 py-2">{record.memberName}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.grossWages)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.epfWages)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.epsWages)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.edliWages)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.employeePfContribution)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.employerEpsContribution)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.employerPfContribution)}</td>
-                      <td className="px-3 py-2">₹{formatMoney(record.refundOfAdvance)}</td>
-                      <td className="px-3 py-2">{record.ncpDays ?? 0}</td>
-                      <td className="px-3 py-2">{statement.establishmentId ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );

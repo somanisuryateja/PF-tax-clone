@@ -102,7 +102,7 @@ const ReturnUploadPage = () => {
         member.memberName,
         member.dateOfJoining ?? "",
         member.dateOfExit ?? "",
-        member.aadhaarStatus ?? "",
+        "Verified",
         member.pensionMember ?? "",
         member.higherWages ?? "",
         member.deferredPension ?? "",
@@ -652,11 +652,11 @@ const ReturnUploadPage = () => {
                         <button
                           type="button"
                           onClick={() => handleDownloadFile(item.id, item.returnFileName)}
-                          className="inline-flex items-center gap-1 rounded border border-sky-600 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-60"
+                          className="inline-flex items-center justify-center rounded border border-sky-600 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-60"
                           disabled={downloadingFileId === item.id}
+                          title={downloadingFileId === item.id ? "Downloading…" : "Download"}
                         >
                           <DocumentIcon className="h-4 w-4" />
-                          {downloadingFileId === item.id ? "Downloading…" : "Download"}
                         </button>
                       ) : (
                         "—"
@@ -785,11 +785,11 @@ const ReturnUploadPage = () => {
                         <button
                           type="button"
                           onClick={() => handleDownloadFile(item.id, item.returnFileName)}
-                          className="inline-flex items-center gap-1 rounded border border-sky-600 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-60"
+                          className="inline-flex items-center justify-center rounded border border-sky-600 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-60"
                           disabled={downloadingFileId === item.id}
+                          title={downloadingFileId === item.id ? "Downloading…" : "Download"}
                         >
                           <DocumentIcon className="h-4 w-4" />
-                          {downloadingFileId === item.id ? "Downloading…" : "Download"}
                         </button>
                       ) : (
                         "—"

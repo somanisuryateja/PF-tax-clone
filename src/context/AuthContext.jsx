@@ -28,12 +28,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async (resetBackend = false) => {
+    // Try to reset backend data if requested and token is available
+    if (resetBackend && token) {
+      try {
+        await apiClient.post('/auth/logout');
+      } catch (err) {
+        // Continue with logout even if backend call fails
+        console.error('Error resetting backend data on logout:', err);
+      }
+    }
+
+    // Clear all storage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    // Clear state
     setAuthToken('');
     setEmployer(null);
     setTokenState('');
     setEmployerState(null);
-  }, []);
+    setError('');
+    setLoading(false);
+  }, [token]);
 
   useEffect(() => {
     const handleForcedLogout = () => {
@@ -57,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       setError,
     }),
-    [token, employer, loading, error]
+    [token, employer, loading, error, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

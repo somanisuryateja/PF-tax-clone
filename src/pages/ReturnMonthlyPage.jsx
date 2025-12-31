@@ -261,15 +261,6 @@ const ReturnMonthlyPage = () => {
                         >
                           View / Upload
                         </Link>
-                        {item.id && !item.isPlaceholder && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/returns/${item.id}`)}
-                            className="inline-flex items-center justify-center rounded-full border border-[#1d4ed8] px-3 py-1 text-xs font-semibold text-[#1d4ed8] shadow hover:bg-[#e0e7ff]"
-                          >
-                            View Statement
-                          </button>
-                        )}
                       </div>
                     </td>
                     <td className="border border-gray-300 px-2 py-2">

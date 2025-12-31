@@ -122,7 +122,7 @@ const ChallanPaymentPage = () => {
   }, [isFullPaymentMode, activeFullPaymentContext, challan?.trrn, challan?.totalAmount, wageMonthLabel]);
 
   const payableAmount = isFullPaymentMode
-    ? fullPaymentDetails?.grandTotal ?? challan?.totalAmount ?? 0
+    ? fullPaymentDetails?.returnAmount ?? challan?.totalAmount ?? 0
     : challan?.totalAmount ?? 0;
 
   const handlePayChallan = () => {
@@ -391,23 +391,9 @@ const ChallanPaymentPage = () => {
                 <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.returnAmount)}</span>
               </div>
 
-              <div className="border-b border-gray-200 px-4 py-3 text-base text-red-600">
-                You are liable to pay Damages (14B) and Interest (7Q) on this challan.
-              </div>
-
-              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <span className="text-gray-600 text-base font-semibold">Interest (7Q):</span>
-                <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.interest7q)}</span>
-              </div>
-
-              <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <span className="text-gray-600 text-base font-semibold">Damages (14B):</span>
-                <span className="text-base font-semibold">{formatAmount(fullPaymentDetails.damages14b)}</span>
-              </div>
-
               <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                 <span className="text-gray-600 text-base font-semibold">Grand Total:</span>
-                <span className="text-lg font-semibold text-[#0f766e]">{formatAmount(fullPaymentDetails.grandTotal)}</span>
+                <span className="text-lg font-semibold text-[#0f766e]">{formatAmount(fullPaymentDetails.returnAmount)}</span>
               </div>
 
               <div className="border-b border-gray-200 px-4 py-3 text-base text-gray-800">

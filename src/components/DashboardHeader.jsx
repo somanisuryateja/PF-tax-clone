@@ -1,15 +1,20 @@
 import React, { useMemo } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { apiClient } from "../api/client.js";
 
 const DashboardHeader = () => {
   const { employer, logout } = useAuth();
   const loginDate = useMemo(() => new Date().toLocaleString(), []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('pf-token');
-    localStorage.removeItem('pf-employer');
-    logout();
-    window.location.replace("/");
+  const handleLogout = async () => {
+    // Call logout with backend reset flag
+    await logout(true);
+    
+    // Force a hard redirect to ensure complete reset
+    // Using replace to prevent back button navigation
+    setTimeout(() => {
+      window.location.replace("/");
+    }, 100);
   };
 
   return (
